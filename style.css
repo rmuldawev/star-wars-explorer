@@ -30,10 +30,57 @@ main h2 {
     margin-bottom: 20px;
 }
 
+main h3 {
+    margin-top: 0;
+}
+
 input[type="search"] {
     width: 100%;
     max-width: 500px;
     padding: 12px;
     font-size: 16px;
     margin-bottom: 30px;
+}
+
+/* Shared details container */
+
+.details-container {
+    margin-bottom: 30px;
+}
+
+.details-container p {
+    margin: 8px 0;
+}
+
+.details-label {
+    font-weight: bold;
+}
+
+.details-value {
+    font-size: 14px;
+}
+
+/* Shared related container */
+
+.related-container {
+    padding: 5px;
+}
+
+.related-container p {
+    display: inline;
+    font-size: 14px;
+}
+
+.related-container p:not(:last-child)::after {
+    content: ", ";
+}
+
+.related-container a {
+    color: #222;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.related-container a:hover {
+    text-decoration: underline;
 }

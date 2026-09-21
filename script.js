@@ -8,40 +8,58 @@ const API_BASE_URL = "https://www.swapi.tech/api";
 //CONSTS
 let currentPage = 1;
 let totalPages = 1;
+let isLoading = false
 
-async function getCharacters( page=1 ) {
-    currentPage = page;
-     const response = await fetch(
-        `${API_BASE_URL}/people?page=${page}&limit=10`
-    );
+async function getCharacters( page = 1 ) {
 
-    const data = await response.json();
-    
-    totalPages = data.total_pages;
+    if (isLoading) {
+        return;
+    }
 
-    previousButton.disabled = currentPage === 1;
-    nextButton.disabled = currentPage === totalPages;
+    isLoading = true
 
-    const pageInfo = document.querySelector("#page-info");
-    pageInfo.textContent = `Page ${page} of ${data.total_pages}`;
+    previousButton.disabled = true;
+    nextButton.disabled = true;
 
-    const container = document.querySelector("#characters-container");
-    container.innerHTML = "";
+      try {
+        const response = await fetch(
+            `${API_BASE_URL}/people?page=${page}&limit=10`
+        );
 
-    data.results.forEach(character => {
-        const characterElement = document.createElement("div");
+        if (!response.ok) {
+            throw new Error("Failed to fetch characters");
+        }
 
-        characterElement.innerHTML = `
-            <h3>
-                <a href="character.html?id=${character.uid}">
-                    ${character.name}
-                </a>
-            </h3>
-            <p>ID: ${character.uid}</p>
-        `;
+        const data = await response.json();
 
-        container.appendChild(characterElement);
-    });
+        currentPage = page;
+        totalPages = data.total_pages;
+
+        const pageInfo = document.querySelector("#page-info");
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        const container = document.querySelector("#list-container");
+        container.innerHTML = "";
+
+        data.results.forEach(character => {
+            const characterElement = document.createElement("div");
+
+            characterElement.innerHTML = `
+                    <a href="character.html?id=${character.uid}">
+                        ${character.name}
+                    </a>
+            `;
+
+            container.appendChild(characterElement);
+        });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        isLoading = false;
+
+        previousButton.disabled = currentPage === 1;
+        nextButton.disabled = currentPage === totalPages;
+    }
 }
 
 const previousButton = document.querySelector("#previous-page");
@@ -49,18 +67,16 @@ const nextButton = document.querySelector("#next-page");
 
 if (previousButton && nextButton) {
     nextButton.addEventListener("click", () => {
-        if(currentPage < totalPages) {
+        if (currentPage < totalPages) {
             getCharacters(currentPage + 1);
         }
-});
-}
+    });
 
-if(previousButton && nextButton) {
-    previousButton.addEventListener('click', () => {
-        if(currentPage > 1) {
-            getCharacters(currentPage - 1)
+    previousButton.addEventListener("click", () => {
+        if (currentPage > 1) {
+            getCharacters(currentPage - 1);
         }
-    })
+    });
 }
 
 async function getCharacterDetails(id) {
@@ -174,16 +190,22 @@ async function getFilmDetails(id) {
     const charactersContainer = document.querySelector("#film-characters");
 
 
+    for (let i = 0; i < film.characters.length; i += 3) {
+    const batch = film.characters.slice(i, i + 3);
+
     const characters = await Promise.all(
-        film.characters.map(async characterUrl => {
+        batch.map(async characterUrl => {
             const response = await fetch(characterUrl);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch character: ${response.status}`);
+            }
+
             const data = await response.json();
 
             return data.result;
         })
     );
-
-    charactersContainer.innerHTML = "<h3>Characters</h3>";
 
     characters.forEach(character => {
         const characterElement = document.createElement("p");
@@ -196,6 +218,12 @@ async function getFilmDetails(id) {
 
         charactersContainer.appendChild(characterElement);
     });
+    const loading = document.querySelector("#characters-loading");
+
+    if (loading) {
+        loading.remove();
+    }
+}
 }
 
 async function getFilms() {
@@ -207,17 +235,21 @@ async function getFilms() {
     data.result.forEach(film => {
         const filmElement = document.createElement("div");
 
-        filmElement.innerHTML = `
-            <h3>
-                <a href="film.html?id=${film.uid}">
-                    ${film.properties.title}
-                </a>
-            </h3>
-            <p>Episode: ${film.properties.episode_id}</p>
+       filmElement.innerHTML = `
+            <a href="film.html?id=${film.uid}">
+                <span>Episode: ${film.properties.episode_id}</span>
+                <span>${film.properties.title}</span>
+            </a>
         `;
 
         container.appendChild(filmElement);
     });
+
+    const loading = document.querySelector("#film-loading");
+
+    if (loading) {
+        loading.remove();
+    }
 }
 
 const params = new URLSearchParams(window.location.search);

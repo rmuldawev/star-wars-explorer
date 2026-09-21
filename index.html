@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 
 </head>
-<body>
+<body class="characters-page">
 
         <header>
             <h1>Star Wars Explorer</h1>
@@ -18,14 +18,15 @@
             </nav>
         </header>
 
-        <main>
+        <main class="search-page">
             <h2>Characters</h2>
 
             <section>
                 <input type="search" placeholder="Search characters...">
             </section>
 
-            <section id="characters-container">
+            <section id="list-container">
+                <p id="loading" class="loading">Loading characters...</p>
             </section>
 
             <section id="pagination">

@@ -10,6 +10,7 @@ let currentPage = 1;
 let totalPages = 1;
 let isLoading = false
 let charactersRequestId = 0;
+let lastCharactersRequest = null;
 
 
 function showLoader(container, message = "Loading...") {
@@ -30,14 +31,35 @@ function hideLoader(container) {
     }
 }
 
+function showError(container, message, retryCallback) {
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="error-message">
+            <p>${message}</p>
+            <button id="retry-button">Retry</button>
+        </div>
+    `;
+
+    const retryButton = container.querySelector("#retry-button");
+
+    retryButton.addEventListener("click", retryCallback);
+}
+
 
 async function getCharacters(page = 1) {
 
-    const requestId = ++charactersRequestId;
 
     if (isLoading) {
         return;
     }
+
+    const requestId = ++charactersRequestId;
+
+
+    lastCharactersRequest = () => getCharacters(page);
 
     isLoading = true;
 
@@ -84,7 +106,17 @@ async function getCharacters(page = 1) {
         });
 
     } catch (error) {
-        console.error(error);
+       console.error(error);
+
+    if (requestId !== charactersRequestId) {
+        return;
+    }
+
+    showError(
+        container,
+        "Failed to load characters.",
+        lastCharactersRequest
+    );
 
     } finally {
         isLoading = false;
@@ -101,6 +133,8 @@ async function searchCharacters(searchQuery) {
     const url = `${API_BASE_URL}/people?name=${encodeURIComponent(searchQuery)}`;
 
     const container = document.querySelector("#list-container");
+
+    lastCharactersRequest = () => searchCharacters(searchQuery);
 
     showLoader(container, "Searching...");
 
@@ -138,6 +172,16 @@ async function searchCharacters(searchQuery) {
 
     } catch (error) {
         console.error(error);
+
+    if (requestId !== charactersRequestId) {
+        return;
+    }
+
+    showError(
+        container,
+        "Failed to search characters.",
+        lastCharactersRequest
+    );
 
     }
 }

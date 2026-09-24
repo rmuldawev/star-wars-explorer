@@ -214,6 +214,45 @@ main h3 {
     color: #8FCBFF;
 }
 
+.error-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 30px 20px;
+    text-align: center;
+}
+
+.error-message p {
+    margin: 0;
+    color: #b00020;
+    font-size: 16px;
+}
+
+#retry-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    background-color: #222222;
+    color: #ffffff;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+#retry-button:hover {
+    background-color: #444444;
+}
+
+#retry-button:active {
+    transform: scale(0.97);
+}
+
+#retry-button:focus-visible {
+    outline: 2px solid #555555;
+    outline-offset: 2px;
+}
+
 
 #films-container {
     display: flex;

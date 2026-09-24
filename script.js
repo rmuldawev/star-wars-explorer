@@ -9,22 +9,49 @@ const API_BASE_URL = "https://www.swapi.tech/api";
 let currentPage = 1;
 let totalPages = 1;
 let isLoading = false
+let charactersRequestId = 0;
 
-async function getCharacters( page = 1 ) {
+
+function showLoader(container, message = "Loading...") {
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML = `
+        <p class="loader">${message}</p>
+    `;
+}
+
+function hideLoader(container) {
+    const load = container?.querySelector(".loader");
+
+    if (load) {
+        load.remove();
+    }
+}
+
+
+async function getCharacters(page = 1) {
+
+    const requestId = ++charactersRequestId;
 
     if (isLoading) {
         return;
     }
 
-    isLoading = true
+    isLoading = true;
 
     previousButton.disabled = true;
     nextButton.disabled = true;
 
-      try {
-        const response = await fetch(
-            `${API_BASE_URL}/people?page=${page}&limit=10`
-        );
+    const container = document.querySelector("#list-container");
+
+    showLoader(container);
+
+    try {
+        const url = `${API_BASE_URL}/people?page=${page}&limit=10`;
+
+        const response = await fetch(url);
 
         if (!response.ok) {
             throw new Error("Failed to fetch characters");
@@ -32,28 +59,33 @@ async function getCharacters( page = 1 ) {
 
         const data = await response.json();
 
+        if (requestId !== charactersRequestId) {
+            return;
+        }
+
         currentPage = page;
         totalPages = data.total_pages;
 
         const pageInfo = document.querySelector("#page-info");
         pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
 
-        const container = document.querySelector("#list-container");
-        container.innerHTML = "";
+        hideLoader(container);
 
         data.results.forEach(character => {
             const characterElement = document.createElement("div");
 
             characterElement.innerHTML = `
-                    <a href="character.html?id=${character.uid}">
-                        ${character.name}
-                    </a>
+                <a href="character.html?id=${character.uid}">
+                    ${character.name}
+                </a>
             `;
 
             container.appendChild(characterElement);
         });
+
     } catch (error) {
         console.error(error);
+
     } finally {
         isLoading = false;
 
@@ -62,8 +94,77 @@ async function getCharacters( page = 1 ) {
     }
 }
 
+async function searchCharacters(searchQuery) {
+
+    const requestId = ++charactersRequestId;
+
+    const url = `${API_BASE_URL}/people?name=${encodeURIComponent(searchQuery)}`;
+
+    const container = document.querySelector("#list-container");
+
+    showLoader(container, "Searching...");
+
+    try {
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error("Failed to search characters");
+        }
+
+        const data = await response.json();
+
+        if (requestId !== charactersRequestId) {
+            return;
+        }
+
+        const pageInfo = document.querySelector("#page-info");
+        const characters = data.result;
+
+        pageInfo.textContent = "Search results";
+
+        hideLoader(container);
+
+        characters.forEach(character => {
+            const characterElement = document.createElement("div");
+
+            characterElement.innerHTML = `
+                <a href="character.html?id=${character.uid}">
+                    ${character.properties.name}
+                </a>
+            `;
+
+            container.appendChild(characterElement);
+        });
+
+    } catch (error) {
+        console.error(error);
+
+    }
+}
+
 const previousButton = document.querySelector("#previous-page");
 const nextButton = document.querySelector("#next-page");
+
+const searchInput = document.querySelector('input[type="search"]');
+
+
+let searchTimeout;
+
+if (searchInput) {
+    searchInput.addEventListener("input", () => {
+        clearTimeout(searchTimeout);
+
+        searchTimeout = setTimeout(() => {
+            const searchQuery = searchInput.value.trim();
+
+           if (searchQuery) {
+                searchCharacters(searchQuery);
+            } else {
+                getCharacters(1);
+            }
+        }, 400);
+    });
+}
 
 if (previousButton && nextButton) {
     nextButton.addEventListener("click", () => {
@@ -255,6 +356,26 @@ async function getFilms() {
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
 
+
+window.addEventListener("pageshow", event => {
+    if (!event.persisted || !searchInput) {
+        return;
+    }
+
+    searchInput.value = "";
+
+    const container = document.querySelector("#list-container");
+
+    if (container) {
+        container.innerHTML = "";
+    }
+
+    getCharacters(1);
+});
+
+
+
+
 if (document.querySelector("#films-container")) {
     getFilms();
 } else if (document.querySelector("#film-container")) {
@@ -262,5 +383,6 @@ if (document.querySelector("#films-container")) {
 } else if (id) {
     getCharacterDetails(id);
 } else {
+    searchInput.value = "";
     getCharacters();
 }

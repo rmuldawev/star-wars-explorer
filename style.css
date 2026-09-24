@@ -208,6 +208,13 @@ main h3 {
     font-size: 14px;
 }
 
+.loader {
+    padding: 20px;
+    text-align: center;
+    color: #8FCBFF;
+}
+
+
 #films-container {
     display: flex;
     flex-direction: column;

@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
     <title>Star Wars Explorer</title>
+    <link rel="stylesheet" href="style.css">
+
 </head>
-<body>
+<body class="characters-page">
 
         <header>
             <h1>Star Wars Explorer</h1>
@@ -17,16 +18,31 @@
             </nav>
         </header>
 
-        <main>
+        <main class="search-page">
             <h2>Characters</h2>
 
             <section>
-                <input type="search" placeholder="Search characters...">
+                <input 
+                    type="search" 
+                    placeholder="Search characters..."
+                    autocomplete="off"
+                    maxlength="50"
+                >
             </section>
 
-            <section id="characters-container">
+            <div id="search-info"></div>
+
+            <section id="list-container">
+            </section>
+
+            <section id="pagination">
+                <button id="previous-page">Previous</button>
+                <span id="page-info"></span>
+                <button id="next-page">Next</button>
             </section>
         </main>
+        
+    <script src="script.js"></script>
 
 </body>
 </html>

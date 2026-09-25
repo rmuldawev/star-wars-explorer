@@ -39,11 +39,11 @@ function showError(container, message, retryCallback) {
     container.innerHTML = `
         <div class="error-message">
             <p>${message}</p>
-            <button id="retry-button">Retry</button>
+            <button class="retry-button">Retry</button>
         </div>
     `;
 
-    const retryButton = container.querySelector("#retry-button");
+    const retryButton = container.querySelector(".retry-button");
 
     retryButton.addEventListener("click", retryCallback);
 }
@@ -127,6 +127,15 @@ async function getCharacters(page = 1) {
 }
 
 async function searchCharacters(searchQuery) {
+    previousButton.hidden = true;
+    nextButton.hidden = true;
+
+    const pageInfo = document.querySelector("#page-info");
+    const searchInfo = document.querySelector("#search-info");
+
+
+    pageInfo.textContent = "";
+    searchInfo.textContent = "Search results";
 
     const requestId = ++charactersRequestId;
 
@@ -151,11 +160,18 @@ async function searchCharacters(searchQuery) {
             return;
         }
 
-        const pageInfo = document.querySelector("#page-info");
         const characters = data.result;
 
-        pageInfo.textContent = "Search results";
+        if (characters.length === 0) {
+            hideLoader(container);
 
+            container.innerHTML = `
+                <p class="no-results">No characters found.</p>
+            `;
+
+            return;
+        }
+        
         hideLoader(container);
 
         characters.forEach(character => {
@@ -189,6 +205,14 @@ async function searchCharacters(searchQuery) {
 const previousButton = document.querySelector("#previous-page");
 const nextButton = document.querySelector("#next-page");
 
+function showPagination() {
+    previousButton.style.removeProperty("display");
+    nextButton.style.removeProperty("display");
+
+    previousButton.hidden = false;
+    nextButton.hidden = false;
+}
+
 const searchInput = document.querySelector('input[type="search"]');
 
 
@@ -204,6 +228,9 @@ if (searchInput) {
            if (searchQuery) {
                 searchCharacters(searchQuery);
             } else {
+                document.querySelector("#search-info").textContent = "";
+                showPagination();
+
                 getCharacters(1);
             }
         }, 400);
@@ -225,175 +252,308 @@ if (previousButton && nextButton) {
 }
 
 async function getCharacterDetails(id) {
-    const response = await fetch(`${API_BASE_URL}/people/${id}`);
-    const data = await response.json();
-
-    const character = data.result.properties;
     const container = document.querySelector("#character-container");
 
-    container.innerHTML = `
-    <h2>${character.name}</h2>
+    showLoader(container);
 
-    <p>
-        <span class="details-label">Height:</span>
-        <span class="details-value">${character.height}</span>
-    </p>
+    try {
+        const response = await fetch(`${API_BASE_URL}/people/${id}`);
 
-    <p>
-        <span class="details-label">Mass:</span>
-        <span class="details-value">${character.mass}</span>
-    </p>
+        if (!response.ok) {
+            throw new Error("Failed to fetch character");
+        }
 
-    <p>
-        <span class="details-label">Hair color:</span>
-        <span class="details-value">${character.hair_color}</span>
-    </p>
-
-    <p>
-        <span class="details-label">Skin color:</span>
-        <span class="details-value">${character.skin_color}</span>
-    </p>
-
-    <p>
-        <span class="details-label">Eye color:</span>
-        <span class="details-value">${character.eye_color}</span>
-    </p>
-
-    <p>
-        <span class="details-label">Birth year:</span>
-        <span class="details-value">${character.birth_year}</span>
-    </p>
-
-    <p>
-        <span class="details-label">Gender:</span>
-        <span class="details-value">${character.gender}</span>
-    </p>
-`;
-
-    const filmsContainer = document.querySelector("#character-films");
-
-        const films = await Promise.all(
-    character.films.map(async filmUrl => {
-        const response = await fetch(filmUrl);
         const data = await response.json();
 
-        return data.result;
-    })
-);
+        const character = data.result.properties;
 
-    filmsContainer.innerHTML = "<h3>Films</h3>";
+        hideLoader(container);
 
-    films.forEach(film => {
-        const filmElement = document.createElement("p");
+        container.innerHTML = `
+            <h2>${character.name}</h2>
 
-        filmElement.innerHTML = `
-            <a href="film.html?id=${film.uid}">
-                ${film.properties.title}
-            </a>
+            <p>
+                <span class="details-label">Height:</span>
+                <span class="details-value">${character.height}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Mass:</span>
+                <span class="details-value">${character.mass}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Hair color:</span>
+                <span class="details-value">${character.hair_color}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Skin color:</span>
+                <span class="details-value">${character.skin_color}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Eye color:</span>
+                <span class="details-value">${character.eye_color}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Birth year:</span>
+                <span class="details-value">${character.birth_year}</span>
+            </p>
+
+            <p>
+                <span class="details-label">Gender:</span>
+                <span class="details-value">${character.gender}</span>
+            </p>
         `;
 
-        filmsContainer.appendChild(filmElement);
-    });
+        await getCharacterFilms(character.films);
+
+    } catch (error) {
+        console.error(error);
+
+        showError(
+            container,
+            "Failed to load character.",
+            () => getCharacterDetails(id)
+        );
+    }
+}
+
+async function getCharacterFilms(filmUrls) {
+    const filmsContainer = document.querySelector("#character-films");
+
+    showLoader(filmsContainer, "Loading films...");
+
+    try {
+        const films = await Promise.all(
+            filmUrls.map(async filmUrl => {
+                const response = await fetch(filmUrl);
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to fetch film: ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+
+                return data.result;
+            })
+        );
+
+        hideLoader(filmsContainer);
+
+        filmsContainer.innerHTML = "<h3>Films</h3>";
+
+        films.forEach(film => {
+            const filmElement = document.createElement("p");
+
+            filmElement.innerHTML = `
+                <a href="film.html?id=${film.uid}">
+                    ${film.properties.title}
+                </a>
+            `;
+
+            filmsContainer.appendChild(filmElement);
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        showError(
+            filmsContainer,
+            "Failed to load films.",
+            () => getCharacterFilms(filmUrls)
+        );
+    }
 }
 
 async function getFilmDetails(id) {
-    const response = await fetch(`${API_BASE_URL}/films/${id}`);
-    const data = await response.json();
-
-    const film = data.result.properties;
     const container = document.querySelector("#film-container");
 
-  container.innerHTML = `
-    <h2>${film.title}</h2>
+    showLoader(container);
 
-    <p>
-        <span class="details-label">Episode:</span>
-        <span class="details-value">${film.episode_id}</span>
-    </p>
+    try {
+        const response = await fetch(`${API_BASE_URL}/films/${id}`);
 
-    <p>
-        <span class="details-label">Director:</span>
-        <span class="details-value">${film.director}</span>
-    </p>
+        if (!response.ok) {
+            throw new Error("Failed to fetch film");
+        }
 
-    <p>
-        <span class="details-label">Producer:</span>
-        <span class="details-value">${film.producer}</span>
-    </p>
+        const data = await response.json();
 
-    <p>
-        <span class="details-label">Release date:</span>
-        <span class="details-value">${film.release_date}</span>
-    </p>
+        const film = data.result.properties;
 
-    <p>
-        <span class="details-label">Opening crawl:</span>
-        <span class="details-value">${film.opening_crawl}</span>
-    </p>
-`;
+        hideLoader(container);
 
-    const charactersContainer = document.querySelector("#film-characters");
+        container.innerHTML = `
+            <h2>${film.title}</h2>
 
+            <p>
+                <span class="details-label">Episode:</span>
+                <span class="details-value">${film.episode_id}</span>
+            </p>
 
-    for (let i = 0; i < film.characters.length; i += 3) {
-    const batch = film.characters.slice(i, i + 3);
+            <p>
+                <span class="details-label">Director:</span>
+                <span class="details-value">${film.director}</span>
+            </p>
 
-    const characters = await Promise.all(
-        batch.map(async characterUrl => {
-            const response = await fetch(characterUrl);
+            <p>
+                <span class="details-label">Producer:</span>
+                <span class="details-value">${film.producer}</span>
+            </p>
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch character: ${response.status}`);
-            }
+            <p>
+                <span class="details-label">Release date:</span>
+                <span class="details-value">${film.release_date}</span>
+            </p>
 
-            const data = await response.json();
-
-            return data.result;
-        })
-    );
-
-    characters.forEach(character => {
-        const characterElement = document.createElement("p");
-
-        characterElement.innerHTML = `
-            <a href="character.html?id=${character.uid}">
-                ${character.properties.name}
-            </a>
+            <p>
+                <span class="details-label">Opening crawl:</span>
+                <span class="details-value">${film.opening_crawl}</span>
+            </p>
         `;
 
-        charactersContainer.appendChild(characterElement);
-    });
-    const loading = document.querySelector("#characters-loading");
+        await getFilmCharacters(film.characters);
 
-    if (loading) {
-        loading.remove();
+    } catch (error) {
+        console.error(error);
+
+        showError(
+            container,
+            "Failed to load film.",
+            () => getFilmDetails(id)
+        );
     }
 }
+
+
+async function getFilmCharacters(characterUrls) {
+    const container = document.querySelector("#film-characters");
+
+    showLoader(container, "Loading characters...");
+
+    try {
+        container.innerHTML = `
+            <h3>Characters</h3>
+            <div id="characters-list"></div>
+            <p class="loader">Loading characters...</p>
+        `;
+
+        const charactersList = container.querySelector("#characters-list");
+        const loader = container.querySelector(".loader");
+
+        const failedUrls = [];
+
+        for (const characterUrl of characterUrls) {
+            try {
+                const response = await fetch(characterUrl);
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to fetch character: ${response.status}`
+                    );
+                }
+
+                const data = await response.json();
+                const character = data.result;
+
+                const characterElement = document.createElement("p");
+
+                characterElement.innerHTML = `
+                    <a href="character.html?id=${character.uid}">
+                        ${character.properties.name}
+                    </a>
+                `;
+
+                charactersList.appendChild(characterElement);
+
+            } catch (error) {
+                console.error(error);
+
+                showError(
+                    container,
+                    "Failed to load characters.",
+                    () => getFilmCharacters(characterUrls)
+                );;
+            }
+        }
+
+        loader.remove();
+
+        if (failedUrls.length > 0) {
+            const errorContainer = document.createElement("div");
+
+            errorContainer.className = "error-message";
+
+            errorContainer.innerHTML = `
+                <p>
+                    Failed to load ${failedUrls.length}
+                    character${failedUrls.length === 1 ? "" : "s"}.
+                </p>
+
+                <button class="retry-button">
+                    Retry
+                </button>
+            `;
+
+            container.appendChild(errorContainer);
+
+            const retryButton =
+                errorContainer.querySelector(".retry-button");
+
+            retryButton.addEventListener("click", () => {
+                errorContainer.remove();
+
+                getFilmCharacters(failedUrls);
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 async function getFilms() {
-    const response = await fetch(`${API_BASE_URL}/films`);
-    const data = await response.json();
-
     const container = document.querySelector("#films-container");
 
-    data.result.forEach(film => {
-        const filmElement = document.createElement("div");
+    showLoader(container);
 
-       filmElement.innerHTML = `
-            <a href="film.html?id=${film.uid}">
-                <span>Episode: ${film.properties.episode_id}</span>
-                <span>${film.properties.title}</span>
-            </a>
-        `;
+    try {
+        const response = await fetch(`${API_BASE_URL}/films`);
 
-        container.appendChild(filmElement);
-    });
+        if (!response.ok) {
+            throw new Error("Failed to fetch films");
+        }
 
-    const loading = document.querySelector("#film-loading");
+        const data = await response.json();
 
-    if (loading) {
-        loading.remove();
+        hideLoader(container);
+
+        data.result.forEach(film => {
+            const filmElement = document.createElement("div");
+
+            filmElement.innerHTML = `
+                <a href="film.html?id=${film.uid}">
+                    <span>Episode: ${film.properties.episode_id}</span>
+                    <span>${film.properties.title}</span>
+                </a>
+            `;
+
+            container.appendChild(filmElement);
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        showError(
+            container,
+            "Failed to load films.",
+            getFilms
+        );
     }
 }
 
@@ -407,6 +567,10 @@ window.addEventListener("pageshow", event => {
     }
 
     searchInput.value = "";
+    document.querySelector("#search-info").textContent = "";
+    document.querySelector("#page-info").textContent = "";
+
+    showPagination();
 
     const container = document.querySelector("#list-container");
 

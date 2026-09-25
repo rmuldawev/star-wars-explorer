@@ -22,13 +22,17 @@
             <h2>Characters</h2>
 
             <section>
-                <input type="search" placeholder="Search characters..."
-                autocomplete="off"
+                <input 
+                    type="search" 
+                    placeholder="Search characters..."
+                    autocomplete="off"
+                    maxlength="50"
                 >
             </section>
 
+            <div id="search-info"></div>
+
             <section id="list-container">
-                <p id="loading" class="loading">Loading characters...</p>
             </section>
 
             <section id="pagination">

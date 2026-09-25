@@ -56,8 +56,9 @@ input[type="search"] {
     border: 0px;
 }
 
-input :focus-visible {
-    outline-style: none;
+input:focus-visible {
+    outline: 2px solid #8FCBFF;
+    outline-offset: 2px;
 }
 
 #pagination {
@@ -225,11 +226,11 @@ main h3 {
 
 .error-message p {
     margin: 0;
-    color: #b00020;
+    color: #ff6b6b;
     font-size: 16px;
 }
 
-#retry-button {
+.retry-button {
     padding: 10px 20px;
     border: none;
     border-radius: 6px;
@@ -240,15 +241,15 @@ main h3 {
     transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
-#retry-button:hover {
+.retry-button:hover {
     background-color: #444444;
 }
 
-#retry-button:active {
+.retry-button:active {
     transform: scale(0.97);
 }
 
-#retry-button:focus-visible {
+.retry-button:focus-visible {
     outline: 2px solid #555555;
     outline-offset: 2px;
 }
@@ -279,4 +280,16 @@ main h3 {
 #list-container a:hover {
     color: #00BFFF;
     text-decoration: underline;
+}
+
+#search-info {
+    margin: 16px 0;
+    color: #D6E0EA;
+    font-weight: 600;
+}
+
+.no-results {
+    margin: 16px 0;
+    color: #D6E0EA;
+    font-weight: 400;
 }
